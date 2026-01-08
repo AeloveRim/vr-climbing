@@ -1,0 +1,21 @@
+set(sources ${sources}
+    src/plugin.cpp
+    src/hook.cpp
+    src/Config.cpp
+    src/InputManager.cpp
+    src/higgsinterface001.cpp
+    src/ShackleModeManager.cpp
+    src/HavokUtils.cpp
+    src/ClimbManager.cpp
+    src/ClimbSurfaceDetector.cpp
+    src/BallisticController.cpp
+    src/CriticalStrikeManager.cpp
+    src/StaminaDrainManager.cpp
+    src/ClimbingDamageManager.cpp
+    src/EquipmentManager.cpp
+    src/HiggsCompatManager.cpp
+    src/ClimbExitCorrector.cpp
+    src/MenuChecker.cpp
+    src/AudioManager.cpp
+    src/util/Raycast.cpp
+)
