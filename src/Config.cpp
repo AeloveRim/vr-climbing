@@ -23,8 +23,8 @@ namespace Config {
 enabled=1
 ; Enable haptic pulse when a hand successfully latches onto a surface (1=enabled, 0=disabled)
 latchHapticsEnabled=1
-; Haptic pulse duration/intensity (SkyrimVR internal units, default 18.0)
-latchHapticDuration=18.0
+; Haptic pulse duration/intensity (SkyrimVR internal units)
+latchHapticDuration=14.4
 ; Minimum speed to trigger launch when releasing grip (units/sec)
 minLaunchSpeed=5.0
 ; Extra multiplier for horizontal (X/Y) movement (1.0 = same as vertical)
