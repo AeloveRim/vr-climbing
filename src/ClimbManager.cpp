@@ -180,6 +180,32 @@ ClimbManager* ClimbManager::GetSingleton()
     return &instance;
 }
 
+bool ClimbManager::InstallMainThreadHook()
+{
+    // Hook into main game loop - REL::RelocationID(35565, 36564) is the main update function
+    // This runs every frame on the main thread, ensuring consistent frame timing.
+    // Offset 0x7ee (VR) / 0x748 (SE) / 0xc26 (AE) points to a call site within the function.
+
+    SKSE::AllocTrampoline(1 << 4);  // 16 bytes
+    auto& trampoline = SKSE::GetTrampoline();
+
+    REL::Relocation<std::uintptr_t> mainLoopFunc{REL::RelocationID(35565, 36564)};
+
+    // The offset varies by game version - use REL::Relocate for cross-version compatibility
+    // SE: 0x748, AE: 0xc26, VR: 0x7ee
+    auto hookOffset = REL::Relocate(0x748, 0xc26, 0x7ee);
+
+    s_originalFunc = trampoline.write_call<5>(
+        mainLoopFunc.address() + hookOffset,
+        &ClimbManager::OnMainThreadUpdate
+    );
+
+    spdlog::info("ClimbManager: Installed main thread hook at {:x} + 0x{:x}",
+        mainLoopFunc.address(), hookOffset);
+
+    return true;
+}
+
 void ClimbManager::Initialize()
 {
     if (m_initialized) {
@@ -187,11 +213,8 @@ void ClimbManager::Initialize()
         return;
     }
 
-    // Register for HIGGS PrePhysicsStep callback (synchronized with physics)
-    if (g_higgsInterface) {
-        g_higgsInterface->AddPrePhysicsStepCallback(&ClimbManager::OnPrePhysicsStep);
-        spdlog::info("ClimbManager: Registered PrePhysicsStep callback with HIGGS");
-    } else {
+    // Verify HIGGS is available (still needed for surface detection and other features)
+    if (!g_higgsInterface) {
         spdlog::error("ClimbManager: HIGGS interface not available, climbing won't work");
         return;
     }
@@ -244,9 +267,12 @@ void ClimbManager::Shutdown()
     spdlog::info("ClimbManager shut down");
 }
 
-void ClimbManager::OnPrePhysicsStep(void* world)
+void ClimbManager::OnMainThreadUpdate()
 {
-    // This is called every physics step, synchronized with the simulation
+    // Call original function first
+    s_originalFunc();
+
+    // This is called every frame on the main thread
     auto* instance = GetSingleton();
     if (!instance->m_initialized) {
         return;
@@ -603,6 +629,18 @@ void ClimbManager::UpdateClimbing()
         // Delta is how much the hand offset changed
         // Player should move in the OPPOSITE direction (pulling yourself up)
         RE::NiPoint3 handMovement = currentHandOffset - m_leftPrevHandOffset;
+
+        // Debug: log large offset changes (potential mod interference)
+        float offsetChange = std::sqrt(handMovement.x * handMovement.x + handMovement.y * handMovement.y + handMovement.z * handMovement.z);
+        if (offsetChange > 10.0f) {
+            spdlog::warn("ClimbManager: Large L hand offset change! movement=({:.1f},{:.1f},{:.1f}) mag={:.1f}, "
+                "prevOffset=({:.1f},{:.1f},{:.1f}), currOffset=({:.1f},{:.1f},{:.1f}), playerPos=({:.1f},{:.1f},{:.1f})",
+                handMovement.x, handMovement.y, handMovement.z, offsetChange,
+                m_leftPrevHandOffset.x, m_leftPrevHandOffset.y, m_leftPrevHandOffset.z,
+                currentHandOffset.x, currentHandOffset.y, currentHandOffset.z,
+                playerPos.x, playerPos.y, playerPos.z);
+        }
+
         totalDelta = totalDelta - handMovement;  // Negative = pull toward grab point
         m_leftPrevHandOffset = currentHandOffset;
         grabCount++;
@@ -613,6 +651,18 @@ void ClimbManager::UpdateClimbing()
         RE::NiPoint3 currentHandPos = GetHandWorldPosition(false);
         RE::NiPoint3 currentHandOffset = currentHandPos - playerPos;
         RE::NiPoint3 handMovement = currentHandOffset - m_rightPrevHandOffset;
+
+        // Debug: log large offset changes (potential mod interference)
+        float offsetChange = std::sqrt(handMovement.x * handMovement.x + handMovement.y * handMovement.y + handMovement.z * handMovement.z);
+        if (offsetChange > 10.0f) {
+            spdlog::warn("ClimbManager: Large R hand offset change! movement=({:.1f},{:.1f},{:.1f}) mag={:.1f}, "
+                "prevOffset=({:.1f},{:.1f},{:.1f}), currOffset=({:.1f},{:.1f},{:.1f}), playerPos=({:.1f},{:.1f},{:.1f})",
+                handMovement.x, handMovement.y, handMovement.z, offsetChange,
+                m_rightPrevHandOffset.x, m_rightPrevHandOffset.y, m_rightPrevHandOffset.z,
+                currentHandOffset.x, currentHandOffset.y, currentHandOffset.z,
+                playerPos.x, playerPos.y, playerPos.z);
+        }
+
         totalDelta = totalDelta - handMovement;
         m_rightPrevHandOffset = currentHandOffset;
         grabCount++;
@@ -631,6 +681,10 @@ void ClimbManager::UpdateClimbing()
     sample.delta = totalDelta;
     sample.deltaTime = deltaTime;
     m_velocityHistory.push_back(sample);
+
+    // Debug logging: log sample details when delta is significant
+    float deltaMag = std::sqrt(totalDelta.x * totalDelta.x + totalDelta.y * totalDelta.y + totalDelta.z * totalDelta.z);
+    float instantVel = deltaTime > 0.0f ? deltaMag / deltaTime : 0.0f;
 
     // Trim old samples (keep only recent ones within time window)
     float totalTime = 0.0f;
@@ -799,6 +853,10 @@ RE::NiPoint3 ClimbManager::CalculateLaunchVelocity() const
         return RE::NiPoint3{0.0f, 0.0f, 0.0f};
     }
 
+    // Debug: dump all velocity samples at launch time
+    int sampleIdx = 0;
+
+
     // Velocity-weighted average: faster hand movements have more influence on final direction
     // Weight = pow(speed, exponent) where exponent is configurable
     // This makes the "flick" at release dominate over slow positioning movements
@@ -909,6 +967,10 @@ RE::NiPoint3 ClimbManager::CalculateLaunchVelocity() const
     avgVelocity.x = weightedVelocity.x / totalWeight;
     avgVelocity.y = weightedVelocity.y / totalWeight;
     avgVelocity.z = weightedVelocity.z / totalWeight;
+
+    float avgSpeed = std::sqrt(avgVelocity.x * avgVelocity.x + avgVelocity.y * avgVelocity.y + avgVelocity.z * avgVelocity.z);
+    spdlog::info("  Weighted avg velocity: ({:.1f},{:.1f},{:.1f}) speed={:.1f} u/s, totalWeight={:.1f}, rejected={}",
+        avgVelocity.x, avgVelocity.y, avgVelocity.z, avgSpeed, totalWeight, rejectedSamples);
 
     // Calculate launch multiplier and max speed based on equipment and race
     auto* equipMgr = EquipmentManager::GetSingleton();

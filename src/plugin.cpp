@@ -76,6 +76,12 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
 
 	spdlog::info("VRClimbing loading...");
 
+	// Install main thread hook early (before other initialization)
+	if (!ClimbManager::InstallMainThreadHook()) {
+		spdlog::error("Failed to install main thread hook");
+		return false;
+	}
+
 	// Load configuration from INI (creates default if not found)
 	Config::ReadConfigOptions();
 

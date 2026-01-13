@@ -4,6 +4,7 @@
 #include "InputManager.h"
 #include "higgsinterface001.h"
 #include "RE/Skyrim.h"
+#include "SKSE/Trampoline.h"
 #include <chrono>
 #include <deque>
 
@@ -13,6 +14,9 @@ class ClimbManager
 {
 public:
     static ClimbManager* GetSingleton();
+
+    // Install main thread hook - call once during plugin init (before Initialize)
+    static bool InstallMainThreadHook();
 
     void Initialize();
     void Shutdown();
@@ -35,8 +39,11 @@ private:
     ClimbManager(const ClimbManager&) = delete;
     ClimbManager& operator=(const ClimbManager&) = delete;
 
-    // HIGGS PrePhysicsStep callback - called before physics simulation each frame
-    static void OnPrePhysicsStep(void* world);
+    // Main thread update callback - called every frame on main thread
+    static void OnMainThreadUpdate();
+
+    // Original function pointer (stored by trampoline)
+    static inline REL::Relocation<decltype(OnMainThreadUpdate)> s_originalFunc;
 
     // Input callbacks - return true to consume input
     bool OnGripPressed(bool isLeft);
