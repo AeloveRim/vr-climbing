@@ -51,6 +51,10 @@ float StaminaDrainManager::CalculateStaminaCostPerSecond() const
 bool StaminaDrainManager::UpdateClimbingDrain(float deltaTime)
 {
     float staminaCost = CalculateStaminaCostPerSecond();
+    float minStamina = Config::options.minStamina;
+    if (minStamina < 0.0f) {
+        minStamina = 0.0f;
+    }
 
     // If stamina cost is 0, no drain needed
     if (staminaCost <= 0.0f) {
@@ -70,7 +74,7 @@ bool StaminaDrainManager::UpdateClimbingDrain(float deltaTime)
     DrainStamina(drainAmount);
 
     // Check if out of stamina
-    if (GetCurrentStamina() <= 0.0f) {
+    if (GetCurrentStamina() <= minStamina) {
         spdlog::info("StaminaDrainManager: Out of stamina - dropping!");
         return false;  // Force release
     }
