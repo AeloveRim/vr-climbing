@@ -181,14 +181,13 @@ volume=0.9
 hotReloadEnabled=0
 
 [AeloveTweaks]
-; Sets a minimum amount of Stamina required to be able to climb
-; Set to 0 to disable
+; Sets a minimum amount of Stamina required to be able to climb (set to 0 to disable)
 minStamina=75
-; Use the regular Havok physics when falling after climbing in human form
-; If true, you can no longer launch yourself and you suffer from fall damage normally
-regularPhysicsOnFall=true
-; Use the regular Havok physics when falling after climbing in werewolf or vampire lord form
-regularPhysicsOnFallBeast=false
+; Use the regular Havok physics when falling after climbing in human form (set to 1 to enable)
+; If enabled, you can no longer launch yourself and you suffer from fall damage normally
+regularPhysicsOnFall=1
+; Use the regular Havok physics when falling after climbing in werewolf or vampire lord form (set to 1 to enable)
+regularPhysicsOnFallBeast=0
 ; Base stamina drain per second while climbing in beast form (set to 0 to disable)
 baseStaminaCostBeast=4.0
 )";
@@ -497,4 +496,5 @@ baseStaminaCostBeast=4.0
         return false;
     }
 }
+
 
