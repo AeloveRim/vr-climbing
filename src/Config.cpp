@@ -167,7 +167,14 @@ volume=0.5
 [Debug]
 ; Hot reload INI when file is modified (1=enabled, 0=disabled)
 ; Disable this for release builds to avoid file system checks every frame
-hotReloadEnabled=1
+hotReloadEnabled=0
+
+[AeloveTweaks]
+; Sets a minimum amount of Stamina required to be able to climb
+; Set to 0 to disable.
+minStamina=75
+; Enables fall damage while climbing and launching yourself
+enableFallDamage=true
 )";
 
     // ===== Low-level INI readers using Windows API =====
