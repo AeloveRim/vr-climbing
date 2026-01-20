@@ -14,14 +14,14 @@ float StaminaDrainManager::CalculateStaminaCostPerSecond() const
 {
     auto* equipMgr = EquipmentManager::GetSingleton();
 
-    // Beast forms have no stamina drain
-    if (equipMgr->IsInBeastForm()) {
-        return 0.0f;
-    }
-
     // God mode = no drain
     if (RE::PlayerCharacter::IsGodMode()) {
         return 0.0f;
+    }
+
+    // Beast forms have no stamina drain (AELOVE: NOW THEY DO)
+    if (equipMgr->IsInBeastForm()) {
+        return Config::options.baseStaminaCostBeast;
     }
 
     // Overencumbered takes priority (if enabled)
@@ -99,7 +99,7 @@ bool StaminaDrainManager::CanStartClimbing() const
     if (minStamina < 0.0f) {
         minStamina = 0.0f;
     }
-    
+
     return GetCurrentStamina() > minStamina;
 }
 
@@ -150,4 +150,3 @@ float StaminaDrainManager::GetMaxStamina() const
 
     return player->AsActorValueOwner()->GetPermanentActorValue(RE::ActorValue::kStamina);
 }
-
