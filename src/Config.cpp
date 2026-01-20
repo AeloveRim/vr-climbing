@@ -384,6 +384,10 @@ enableFallDamage=true
         // Debug settings
         RegisterBool("Debug", "hotReloadEnabled", options.hotReloadEnabled);
 
+        // Aelove Tweaks
+        RegisterFloat("AeloveTweaks", "minStamina", options.minStamina);
+        RegisterBool("AeloveTweaks", "enableFallDamage", options.enableFallDamage);
+
         g_registrationComplete = true;
 
         spdlog::info("Config: Loaded successfully");
@@ -475,3 +479,4 @@ enableFallDamage=true
         return false;
     }
 }
+
