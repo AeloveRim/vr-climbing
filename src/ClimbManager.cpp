@@ -379,6 +379,8 @@ bool ClimbManager::OnGripPressed(bool isLeft)
     // Check if player has enough stamina to climb
     if (!StaminaDrainManager::GetSingleton()->CanStartClimbing()) {
         spdlog::debug("ClimbManager: Cannot climb - no stamina");
+        // Play out-of-breath cue so the player knows stamina is blocking the grab
+        AudioManager::GetSingleton()->PlayStaminaExhaustedSound();
         // Still consume if other hand is climbing
         return eitherHandClimbing;
     }
