@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RE/Skyrim.h"
+#include <chrono>
 
 // Manages sound playback for VRClimbing
 // Uses vanilla Skyrim footstep sounds played via BSAudioManager::BuildSoundDataFromFile
@@ -16,6 +17,12 @@ public:
     // Play a launch sound at player position
     // Uses sprint sounds for fast launches (>=150), sneak sounds for slow launches
     void PlayLaunchSound(float launchSpeed, bool isBeastForm);
+
+    // Play the out-of-stamina panting cue (custom .wav bundled with the mod).
+    // Selects the male or female file based on the player's sex.
+    // Has an internal cooldown (~2 s) to prevent spamming when the player
+    // repeatedly attempts to grab while exhausted.
+    void PlayStaminaExhaustedSound();
 
     // Get effective volume (config volume * game master volume)
     float GetEffectiveVolume() const;
@@ -52,7 +59,18 @@ private:
     // Velocity threshold for fast vs slow launch sounds
     static constexpr float LAUNCH_SPEED_THRESHOLD = 150.0f;
 
+    // Out-of-stamina panting sounds (custom .wav files bundled with the mod)
+    // Deployed to Data\sound\fx\vrclimbing\ alongside the DLL
+    static constexpr const char* EXHALE_SOUND   = "sound\\fx\\vrclimbing\\exhale.wav";
+
+    // Minimum seconds between successive stamina-exhausted cues
+    static constexpr float STAMINA_EXHAUSTED_COOLDOWN = 1.0f;
+
     // RNG state for sound variation
     mutable int m_lastGripVariant = 0;
     mutable int m_lastLaunchVariant = 0;
+
+    // Cooldown tracking for stamina-exhausted sound
+    mutable std::chrono::steady_clock::time_point m_lastExhaustedSoundTime;
+    mutable bool m_exhaustedSoundEverPlayed = false;
 };
