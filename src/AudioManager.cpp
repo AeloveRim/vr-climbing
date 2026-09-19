@@ -164,3 +164,25 @@ void AudioManager::PlayLaunchSound(float launchSpeed, bool isBeastForm)
     spdlog::debug("AudioManager: Launch sound (speed={:.1f}, beast={}) variant {} at volume {:.2f}",
                   launchSpeed, isBeastForm, variant, volume);
 }
+
+void AudioManager::PlayStaminaExhaustedSound()
+{
+    if (!Config::options.soundEnabled) {
+        return;
+    }
+
+    auto now = std::chrono::steady_clock::now();
+    if (m_exhaustedSoundEverPlayed) {
+        float elapsed = std::chrono::duration<float>(now - m_lastExhaustedSoundTime).count();
+        if (elapsed < STAMINA_EXHAUSTED_COOLDOWN) {
+            return;
+        }
+    }
+
+    const char* soundPath = EXHALE_SOUND;
+
+    if (PlaySoundFile(soundPath, GetEffectiveVolume())) {
+        m_lastExhaustedSoundTime = now;
+        m_exhaustedSoundEverPlayed = true;
+    }
+}
